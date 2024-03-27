@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Tracker</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@babel/preset-env"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@babel/preset-react"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+    <script type="text/javascript" src="https://canvasjs.com/assets/script/canvasjs.min.js"></script>
+    <style>
+	.body {
+    background: rgb(3, 192, 250);
+    color: white;
+    font-size: 24px;
+    text-align: center;
+  }
+  #avgprice {
+    font-size: 24px;
+  }
+     .highlight {
+background-color: yellow;
+color:#111; /* Set the background color for highlighting */
+}
+body {
+background: rgb(3, 192, 250);
+color: white;
+text-align: center;
+}
+#avgprice {
+font-size: 40px;
+}
+
+
+section {
+padding: 20px;
+margin-top: 100px;
+height: fit-content; /* Assurez-vous qu'il y a un espace suffisant sous la barre de navigation */
+}
+#nav ul li a.selected {
+background-color: #111;
+/* Your styles here */
+}
+#section2,
+#section3,
+#section4 {
+display: none; /* Cacher les sections 2, 3 et 4 par défaut */
+}
+
+/* Sélection de la section 1 par défaut */
+#section1 {
+display: block; /* Afficher la section 1 par défaut */
+}
+
+/* Styles pour le contenu des sections */
+section h1,
+section h2,
+section p {
+margin: 0;
+}
+
+/* Styles pour la barre de navigation */
+#nav {
+background-color: #e93333;
+position: fixed;
+top: 0;
+width: 100%;
+margin: 0;
+padding: 0;
+}
+
+#nav ul {
+list-style-type: none;
+margin: 0;
+padding: 0;
+overflow: hidden;
+}
+
+#nav ul li {
+float: left;
+}
+
+#nav ul li a {
+display: flex;
+color: white;
+text-align: center;
+padding: 14px 16px;
+text-decoration: none;
+}
+
+#nav ul li a:hover {
+background-color: #111;
+}
+
+/* Styles pour le menu déroulant */
+#nav ul li#menu-toggle {
+display: none;
+}
+
+@media screen and (max-width: 768px) {
+#nav ul {
+  display: none;
+}
+
+#nav ul li#menu-toggle {
+  display: block;
+  cursor: pointer;
+}
+
+#nav ul li {
+  display: block;
+  text-align: center;
+}
+
+/* Assurez-vous que chaque section a une hauteur fixe */
+section {
+  height: 100vh; /* Cela rendra chaque section de la hauteur de la fenêtre visible, ajustez selon vos besoins */
+}
+}
+/*//////////////////navbar/////////////////////////////*/
+body, ul {
+padding: 0;
+margin: 0;
+}
+
+/* Style the navigation bar */
+nav {
+background-color: #333;
+overflow: hidden;
+}
+
+/* Style the links inside the navigation bar */
+nav ul li {
+list-style-type: none;
+float: left;
+}
+
+nav ul li a {
+display: block;
+color: white;
+text-align: center;
+padding: 14px 16px;
+text-decoration: none;
+}
+
+/* Change the color of the link on hover */
+nav ul li a:hover {
+background-color: #555;
+}
+		</style>
+	
+</head>
+
+<body>
+    <h1>Crypto Tracker</h1>
+    <div>
+    </div>
+    
+    <input type="text" id="cryptoInput" placeholder="Enter Crypto Name (e.g., btcusdt)">
+    <button id="myButton">Subscribe</button>
+    <div>
+        <div style="display:flex;">
+            <p id="avgprice">Loading...</p>
+            <input type="checkbox" id="maCheckbox" name="monCheckbox">
+            <label for="monCheckbox">Case à cocher</label><br>
+        
+            
+        </div>
+        <input type="number" id="prefix_1" value="0" placeholder="0" min="0">
+        <input type="number" id="prefix_2" value="8" placeholder="8" min="1">
+        <input type="number" id="intervalvoice" value="3000" placeholder="3000" step="1000" min="1000">
+        <input type="number" id="periode" value="3" placeholder="3" min="0">
+        <input type="number" id="deviation" value="2" placeholder="2" min="0">
+
+    </div>
+
+    <div id="chartContainer" style="height: 300px; width: 100%;"></div>
+
+
+
+    <script>
+		let checked = true;
+const checkbox = document.getElementById('maCheckbox');
+checkbox.addEventListener('change', function () {
+    checked = !checked;
+});
+
+// Définissez la fonction à exécuter lorsque la case à cocher est cochée ou décochée
+let pricey, time;
+let prefix_1 = 0;
+let prefix_2 = 8;
+let intervalvoice = 3000;
+let pair = '';
+let ws;
+let data={};
+let chart;
+let dataPoints = [];
+let dataPoints2 = [];
+let priceData = [];
+let timeData = [];
+let lastSpeechTime = Date.now(); // Initialize last speech time
+// Create an utterance object
+const utterance = new SpeechSynthesisUtterance();
+const prefix_1l = document.getElementById("prefix_1");
+const prefix_2l = document.getElementById("prefix_2");
+prefix_2l.addEventListener('change', function () {
+    prefix_2 = parseFloat(this.value);
+    hightline();
+});
+prefix_1l.addEventListener('change', function () {
+    prefix_1 = parseInt(this.value);
+    hightline();
+});
+function hightline() {
+    var text = document.getElementById("avgprice").innerText;
+    var startIndex = prefix_1; // Index of the starting character (0-based)
+    var endIndex = prefix_2;    // Index of the ending character (0-based)
+    var highlightedText = text.substring(0, startIndex) +
+        '<span class="highlight">' +
+        text.substring(startIndex, endIndex + 1) +
+        '</span>' +
+        text.substring(endIndex + 1);
+    document.getElementById("avgprice").innerHTML = highlightedText;
+}
+hightline();
+function startWebSocket() {
+    ws = new WebSocket(`wss://stream.binance.com:9443/ws/${pair.toLowerCase()}@miniTicker`);
+    ws.onopen = () => {
+        console.log('WebSocket connected');
+    };
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+         time = new Date(parseInt(data.E));
+         pricey = parseFloat(data.c);
+        let str = data.c.toString();
+        let trimmedStr = str.substring(prefix_1, prefix_2 + 1);
+        intervalvoice = document.getElementById("intervalvoice").value; //interval time for voice recognition (ms)
+        if (Date.now() - lastSpeechTime >= intervalvoice && checked) {
+            utterance.text = trimmedStr;
+            speechSynthesis.speak(utterance);
+            lastSpeechTime = Date.now();
+        }
+
+        dataPoints.push({
+            x: time,
+            y: pricey
+        });
+        timeData.push(time);
+        priceData.push(pricey);
+
+        if (dataPoints.length > 1000) {
+            dataPoints.shift();
+            timeData.shift();
+            priceData.shift();
+        }
+        const avgprice = document.getElementById('avgprice');
+        avgprice.innerHTML = `${data.c}`;
+        hightline();
+        updateChart(data);    };
+
+    ws.onclose = () => {
+        console.log('WebSocket closed');
+    };
+}
+
+function subscribe() {
+    pair = document.getElementById('cryptoInput').value.trim();
+
+    startWebSocket();
+    if (!chart) {
+        chart = new CanvasJS.Chart("chartContainer", {
+            title: {
+                text: "Binance " + pair + " Trades",
+            },
+            data: [{
+                type: "line",
+                dataPoints: []
+            },
+            {
+                type: "line",
+                dataPoints: []
+            },
+            {
+                type: "line",
+                dataPoints: []
+            },
+            {
+                type: "line",
+                dataPoints: []
+            },
+           {
+                type: "line",
+                dataPoints: []
+            }]
+        });
+        chart.render();
+    }
+}
+let period = parseInt(document.getElementById("periode").value);
+let deviation = parseFloat(document.getElementById("deviation").value);
+function updateChart(data) {
+    if (!chart) return;
+
+    const time = new Date(parseInt(data.E));
+    const price = parseFloat(data.c);
+
+    chart.options.title.text = "Binance " + pair + " Trades";
+    chart.data[0].dataPoints.push({ x: time, y: price });
+    priceData.push(price);
+    timeData.push(time);
+    calculateBollingerBands(priceData, timeData, period, deviation);
+
+    if (chart.data[0].dataPoints.length >= period) {
+      chart.data[2].dataPoints.push({ x: time, y:lowerArray[lowerArray.length-1]});  //
+      /*console.log(upperArray);*/
+      chart.data[3].dataPoints.push({ x: time, y:upperArray[upperArray.length-1]});
+    }
+
+    if (chart.data[0].dataPoints.length > 1000) {
+      chart.data[0].dataPoints.shift();
+      chart.data[2].dataPoints.shift();
+      chart.data[3].dataPoints.shift();
+      priceData.shift();
+      timeData.shift();
+    }
+ console.log(chart.data[0].dataPoints);
+ console.log(chart.data[1].dataPoints);
+    chart.render();
+  }
+
+
+  const periodeval = document.getElementById('periode');
+  periodeval.addEventListener("change", function () {
+      calculateBollingerBands(priceData, timeData, this.value, deviation);
+      updateChart();
+  });
+  const deviationval = document.getElementById('deviation');
+  deviationval.addEventListener("change", function () {
+      calculateBollingerBands(priceData, timeData, period, this.value);
+      updateChart();
+  });
+
+  let middleArray = [];
+  let upperArray = [];
+  let lowerArray = [];
+  function calculateBollingerBands(prices, time, period, deviation) {
+
+     for(let i = period; i < prices.length; i++) {
+       let sum = 0;
+       for(let j = i - period; j < i; j++) {
+         sum += prices[j];
+       }
+       let avg = sum / period;
+       middleArray.push(avg);
+
+       let varianceSum = 0;
+       for(let k = i - period; k < i; k++) {
+         varianceSum += Math.pow(prices[k] - avg, 2);
+       }
+       let stdDeviation = Math.sqrt(varianceSum / period);
+
+       upperArray.push( avg + (stdDeviation * deviation));
+       lowerArray.push(avg - (stdDeviation * deviation));
+     }
+  }
+const button = document.getElementById('myButton');
+button.addEventListener('click', subscribe);
+
+function getVoice() {
+    const voices = speechSynthesis.getVoices();
+    const femaleVoice = voices.find(voice => voice.lang.includes('en') && voice.voiceURI.includes('female'));
+    if (femaleVoice) {
+        utterance.voice = femaleVoice;
+    }
+}
+
+getVoice();
+
+		</script>
+
+    
+</body>
+
+
+</html>
